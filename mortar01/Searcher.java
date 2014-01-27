@@ -1,4 +1,4 @@
-package scraps;
+package mortar01;
 
 import java.io.*;
 import java.util.*;
@@ -6,15 +6,21 @@ import mapsearch.*;
 
 public class Searcher{
 
+	public static final int ASTAR = 0;
+	public static final int BFS = 1; 
+	public static final StateNode startState;
+	public static final StateNode goalState;
+
+
     public static void main(String [] args){
 
-	if(args.length < 6){
-	    System.err.println("USAGE: java Searcher nodesFile linksFile startNodeID endNodeID resultFile useGraphSearch(0 or 1)");
+	if(args.length != 7){
+	    System.err.println("USAGE: java Searcher nodesFile linksFile startNodeID endNodeID resultFile useGraphSearch(0 or 1) algorithm(astar or bfs)");
 	    return;
 	}
 
 	// create the RoadNetwork
-	RoadNetwork theRoads;
+	RoadNetwork theRoads = null;
 	try{
 	    theRoads = new RoadNetwork(args[0], args[1]);
 	}
@@ -23,7 +29,7 @@ public class Searcher{
 	}
 
 	// set up the means to write the OSM file
-	PrintWriter osmOut;
+	PrintWriter osmOut = null;
 	try {
 	    final PipedWriter osmOutPipe = new PipedWriter();
 	    final PipedReader in = new PipedReader(osmOutPipe);
@@ -46,6 +52,17 @@ public class Searcher{
 
 	final boolean useGraphSearch = (Integer.parseInt(args[5]) != 0);
 
+	final int ALGORITHM;
+	String temp = args[6];
+	if("astar".equals(temp))
+		ALGORITHM = ASTAR;
+	else if("bfs".equals(temp)){
+		ALGORITHM = BFS;
+	}	
+	temp=null;
+
+	
+
 	// TODO: actually do the search
 
 	// TODO: During the search, write to osmOut:
@@ -54,15 +71,16 @@ public class Searcher{
 	//
 	//  for each edge searched: startID endID
 	//      osmOut.println(e.id1 + " " + e.id2);
+	this.startState = theRoads.getNode(Long.parseLong(args[2]));
+	this.goalState= theRoads.getNode(Long.parseLong(args[3]));
 
-
+	
 	osmOut.close();
 
 	/*
-	  TODO: write the output file (which is in addition to the OSM file)
+	  TODO: write the results file (which is in addition to the OSM file)
 
 	  Here is an example:
-
 	try{
 	    BufferedWriter output = new BufferedWriter(new FileWriter(args[4]));
 	    output.write("Number of nodes enqueued: " + result.numNodesEnqueued + "\n");
@@ -82,7 +100,7 @@ public class Searcher{
 	    System.err.println(ioe.getMessage());
 	}
 
-	*/
+*/	
 
     }
 
