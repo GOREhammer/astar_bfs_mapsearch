@@ -11,11 +11,11 @@ import mortar01.*;
 public class Searcher{
 
 	public static final int ASTAR = 0;
-	public static final int BFS = 1; 
-	public static  StateNode startState;
-	public static  StateNode goalState;
-
-
+	public static final int BFS = 1;
+	public static RoadNetwork theRoads;
+	public static StateNode startState;
+	public static StateNode goalState;
+	
     public static void main(String [] args){
 
 	if(args.length != 7){
@@ -24,7 +24,7 @@ public class Searcher{
 	}
 
 	// create the RoadNetwork
-	RoadNetwork theRoads = null;
+	Searcher.theRoads = null;
 	try{
 	    theRoads = new RoadNetwork(args[0], args[1]);
 	}
@@ -66,6 +66,7 @@ public class Searcher{
 	temp=null;
 
 	
+	
 	// TODO: actually do the search
 
 	// TODO: During the search, write to osmOut:
@@ -74,14 +75,11 @@ public class Searcher{
 	//
 	//  for each edge searched: startID endID
 	//      osmOut.println(e.id1 + " " + e.id2);
-	startState = theRoads.getNode(Long.parseLong(args[2]));
-	goalState= theRoads.getNode(Long.parseLong(args[3]));
-	
-	PriorityQueue<SearchNode> fringe = new PriorityQueue<SearchNode>();
-	if(BFS == algorithm){
-		fringe.add(new BFSSearchNode(startState, null, null, -1, 0 )); // -1 to offset for root 
-	}else if(ASTAR == algorithm){
-		//TODO		
+	Searcher.startState = theRoads.getNode(Long.parseLong(args[2]));
+	Searcher.goalState= theRoads.getNode(Long.parseLong(args[3]));
+	SearchResult searchResult = null;
+	if(algorithm == Searcher.ASTAR){
+		 searchResult = astarSearch(useGraphSearch);
 	}
 	
 	osmOut.close();
@@ -90,16 +88,17 @@ public class Searcher{
 	  TODO: write the results file (which is in addition to the OSM file)
 
 	  Here is an example:
+	  */
 	try{
 	    BufferedWriter output = new BufferedWriter(new FileWriter(args[4]));
-	    output.write("Number of nodes enqueued: " + result.numNodesEnqueued + "\n");
-	    output.write("Number of nodes dequeued: " + result.numNodesDequeued + "\n");
-	    output.write("Was solution found? " + (result.solutionWasFound ? "yes" : "no") + "\n");
-	    if(result.solutionWasFound){
-		output.write("Solution distance: " + result.solutionDistance + "\n");
-		output.write("Number of steps in solution: " + (result.solutionPath.size()-1) + "\n");
-		for(int i=0; i<result.solutionPath.size(); i++){
-		    output.write(result.solutionPath.get(i).toString() + "\n");
+	    output.write("Number of nodes enqueued: " + searchResult.numNodesEnqueued + "\n");
+	    output.write("Number of nodes dequeued: " + searchResult.numNodesDequeued + "\n");
+	    output.write("Was solution found? " + (searchResult.solutionWasFound ? "yes" : "no") + "\n");
+	    if(searchResult.solutionWasFound){
+		output.write("Solution distance: " + searchResult.solutionDistance + "\n");
+		output.write("Number of steps in solution: " + (searchResult.solutionPath.size()-1) + "\n");
+		for(int i=0; i<searchResult.solutionPath.size(); i++){
+		    output.write(searchResult.solutionPath.get(i).toString() + "\n");
 		}
 	    }
 	    output.flush();
@@ -109,14 +108,44 @@ public class Searcher{
 	    System.err.println(ioe.getMessage());
 	}
 
-*/	
     }
     
-    public Result astarSearch(){
-    	return null;
+    public static SearchResult astarSearch(boolean useGraphSearch){
+    	PriorityQueue<AStarSearchNode> fringe = new PriorityQueue<AStarSearchNode>();
+    	SearchResult searchResult = new SearchResult();
+    	fringe.add(new AStarSearchNode(startState, null, null, 0));
+    	searchResult.numNodesEnqueued++;
+    	
+    	while(!fringe.isEmpty()){
+    		AStarSearchNode node = fringe.poll();
+    		searchResult.numNodesDequeued++;
+    		
+      		if(node.getState().id == goalState.id){	// a goal node!
+    			searchResult.solutionWasFound = true;
+       			searchResult.solutionDistance = node.getG();
+       			
+    			searchResult.solutionPath = new ArrayList<Long>();
+    			while(node != null){ // unravel the path
+    				searchResult.solutionPath.add(0, node.getState().id);
+    				node = node.getParent();
+    			}
+    			break;
+     		}
+      		
+      		// add the neighbors to the fringe
+      		ArrayList<AStarSearchNode> neighbors = node.getNeighbors();
+      		if(null != neighbors){
+      			fringe.addAll(node.getNeighbors());
+      			searchResult.numNodesEnqueued += neighbors.size();
+      		}
+      		
+     	}
+    	
+    	return searchResult;
     }
     
-    public Result bfsSearch(){
+    
+    public SearchResult bfsSearch(){
     	return null;
     	
     }
