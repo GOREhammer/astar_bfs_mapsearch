@@ -1,0 +1,8 @@
+Number of nodes enqueued: 20
+Number of nodes dequeued: 9
+Was solution found? yes
+Solution distance: 0.20015
+Number of steps in solution: 2
+178816527
+178816526
+178816525

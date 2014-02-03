@@ -56,13 +56,15 @@ public class AStarSearchNode implements Comparable<AStarSearchNode>{
 		}else{
 			if(this.state.id < o.getState().id){
 				return -1;
-			}else{
+			}else if(this.state.id > o.getState().id){
 				return 1;
+			}else{
+				return 0;
 			}
 		}
 	}
 	
-	public boolean equals(AStarSearchNode o){
-		return (this.state.id == o.getState().id);
+	public boolean equals(Object o){
+		return (this.state.id == ((AStarSearchNode) o).getState().id);
 	}
 }

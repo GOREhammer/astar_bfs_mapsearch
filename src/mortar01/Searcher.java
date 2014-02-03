@@ -2,9 +2,7 @@ package mortar01;
 
 import java.io.*;
 import java.util.*;
-
 import com.sun.corba.se.spi.orbutil.fsm.Guard.Result;
-
 import mapsearch.*;
 import mortar01.*;
 
@@ -16,10 +14,11 @@ public class Searcher{
 	public static StateNode startState;
 	public static StateNode goalState;
 	
-    public static void main(String [] args){
+public static void main(String [] args){
 
 	if(args.length != 7){
-	    System.err.println("USAGE: java Searcher nodesFile linksFile startNodeID endNodeID resultFile useGraphSearch(0 or 1) algorithm(astar or bfs)");
+	    System.err.println("USAGE: java Searcher nodesFile linksFile startNodeID endNodeID resultFile " +
+	    		"useGraphSearch(0 or 1) algorithm(astar or bfs)");
 	    return;
 	}
 
@@ -80,6 +79,8 @@ public class Searcher{
 	SearchResult searchResult = null;
 	if(algorithm == Searcher.ASTAR){
 		 searchResult = astarSearch(useGraphSearch);
+	}else if(algorithm == Searcher.BFS){
+		searchResult = bfsSearch(useGraphSearch);
 	}
 	
 	osmOut.close();
@@ -95,8 +96,8 @@ public class Searcher{
 	    output.write("Number of nodes dequeued: " + searchResult.numNodesDequeued + "\n");
 	    output.write("Was solution found? " + (searchResult.solutionWasFound ? "yes" : "no") + "\n");
 	    if(searchResult.solutionWasFound){
-		output.write("Solution distance: " + searchResult.solutionDistance + "\n");
-		output.write("Number of steps in solution: " + (searchResult.solutionPath.size()-1) + "\n");
+	    	output.write("Solution distance: " + searchResult.solutionDistance + "\n");
+	    	output.write("Number of steps in solution: " + (searchResult.solutionPath.size()-1) + "\n");
 		for(int i=0; i<searchResult.solutionPath.size(); i++){
 		    output.write(searchResult.solutionPath.get(i).toString() + "\n");
 		}
@@ -119,6 +120,7 @@ public class Searcher{
     	while(!fringe.isEmpty()){
     		AStarSearchNode node = fringe.poll();
     		searchResult.numNodesDequeued++;
+    		if(useGraphSearch){node.getState().isClosed = true; node.getState().bestCostSoFar=node.getF();}
     		
       		if(node.getState().id == goalState.id){	// a goal node!
     			searchResult.solutionWasFound = true;
@@ -135,19 +137,85 @@ public class Searcher{
       		// add the neighbors to the fringe
       		ArrayList<AStarSearchNode> neighbors = node.getNeighbors();
       		if(null != neighbors){
-      			fringe.addAll(node.getNeighbors());
-      			searchResult.numNodesEnqueued += neighbors.size();
+      			if(!useGraphSearch){
+      				fringe.addAll(neighbors);
+      				searchResult.numNodesEnqueued += neighbors.size();
+      			}else{
+      				for(AStarSearchNode n : neighbors){
+      					if(!n.getState().isClosed){
+	  						if(fringe.contains(n)){
+	  							if(n.getF() < n.getState().bestCostSoFar){
+	  								fringe.remove(n);
+	  								n.getState().bestCostSoFar = n.getF();
+	  	      						fringe.add(n);
+	  							}
+	  						}else{
+	  							n.getState().bestCostSoFar = n.getF();
+	      						fringe.add(n);
+	      						searchResult.numNodesEnqueued++;
+	  						}
+      					}
+      				}
+      			}	
       		}
-      		
-     	}
-    	
+    	}
     	return searchResult;
     }
     
     
-    public SearchResult bfsSearch(){
-    	return null;
+    public static SearchResult bfsSearch(boolean useGraphSearch){
+    	PriorityQueue<BFSSearchNode> fringe = new PriorityQueue<BFSSearchNode>();
+    	SearchResult searchResult = new SearchResult();
+    	BFSSearchNode root = new BFSSearchNode(startState, null, null, 0);
+    	fringe.add(root);
+     	searchResult.numNodesEnqueued++;
     	
+    	while(!fringe.isEmpty()){
+    		BFSSearchNode node = fringe.poll();
+    		searchResult.numNodesDequeued++;
+    		if(useGraphSearch){
+    			node.getState().isClosed = true;
+    			node.getState().bestCostSoFar = node.getDepth();
+    		}
+    		
+      		if(node.getState().id == goalState.id){	// a goal node!
+    			searchResult.solutionWasFound = true;
+       			searchResult.solutionDistance = node.getTotalDistance();
+       			
+    			searchResult.solutionPath = new ArrayList<Long>();
+    			while(node != null){ // unravel the path
+    				searchResult.solutionPath.add(0, node.getState().id);
+    				node = node.getParent();
+    			}
+    			break;
+     		}
+      		
+      		// add the neighbors to the fringe
+      		ArrayList<BFSSearchNode> neighbors = node.getNeighbors();
+      		if(null != neighbors){
+      			if(!useGraphSearch){
+      				fringe.addAll(neighbors);
+      				searchResult.numNodesEnqueued += neighbors.size();
+      			}else{
+      				for(BFSSearchNode n : neighbors){
+      					if(!n.getState().isClosed){
+      						if(!fringe.contains(n)){
+      							n.getState().bestCostSoFar = n.getDepth();
+	      						fringe.add(n);
+	      						searchResult.numNodesEnqueued++;
+      						}else{
+      							if(n.getState().bestCostSoFar > n.getDepth()){
+      								fringe.remove(n);
+      								n.getState().bestCostSoFar = n.getDepth();
+      								fringe.add(n);
+      							}
+      						}
+      					}
+      				}
+      			}	
+      		}
+     	}
+    	return searchResult;
     }
 
 }
