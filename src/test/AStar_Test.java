@@ -78,10 +78,4 @@ HashMap<String,String[]> fromTo = new HashMap<String,String[]>();
 			correctFile.close();
 		}
 	}
-/*	
-	@Test
-	public void testAstarGraph(){
-		
-	}
-*/	
 }

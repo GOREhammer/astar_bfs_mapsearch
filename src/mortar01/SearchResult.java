@@ -1,6 +1,8 @@
 package mortar01;
 
 import java.util.ArrayList;
+import java.util.Stack;
+
 import mapsearch.*;
 
 class SearchResult{
@@ -8,7 +10,7 @@ class SearchResult{
 	public long numNodesEnqueued, numNodesDequeued;
 	boolean solutionWasFound;
 	public double solutionDistance;
-	ArrayList<Long> solutionPath;
+	Stack<Long> solutionPath;
 	
 	public SearchResult(){
 		this.numNodesEnqueued = this.numNodesDequeued = 0;

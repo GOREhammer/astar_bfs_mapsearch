@@ -11,7 +11,6 @@ public class AStarSearchNode implements Comparable<AStarSearchNode>{
 	private StateNode state;
 	private AStarSearchNode parent;
 	private StateGraphEdge action;
-	
 		
 	public AStarSearchNode(StateNode state, AStarSearchNode parent, StateGraphEdge action, long depth){
 		this.h = EuclideanHeuristic.eval(state, Searcher.goalState);

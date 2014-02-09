@@ -53,21 +53,18 @@ public static void main(String [] args){
 	    x.printStackTrace();
 	}
 
+	// set if we do graph search(1 or not 0) or not(0)
 	final boolean useGraphSearch = (Integer.parseInt(args[5]) != 0);
 
 	int algorithm = 0;
 	String temp = args[6];
 	if("astar".equals(temp))
-		algorithm = ASTAR;
+		algorithm = Searcher.ASTAR;
 	else if("bfs".equals(temp)){
-		algorithm = BFS;
+		algorithm = Searcher.BFS;
 	}	
 	temp=null;
-
 	
-	
-	// TODO: actually do the search
-
 	// TODO: During the search, write to osmOut:
 	//  for each node searched: id latitude longitude
 	//     	osmOut.println(newSearchNode.state.id + " " + newSearchNode.state.lat + " " + newSearchNode.state.lon);
@@ -85,11 +82,7 @@ public static void main(String [] args){
 	
 	osmOut.close();
 
-	/*
-	  TODO: write the results file (which is in addition to the OSM file)
-
-	  Here is an example:
-	  */
+	// write to the results file given as an argument(args[4])
 	try{
 	    BufferedWriter output = new BufferedWriter(new FileWriter(args[4]));
 	    output.write("Number of nodes enqueued: " + searchResult.numNodesEnqueued + "\n");
@@ -98,8 +91,8 @@ public static void main(String [] args){
 	    if(searchResult.solutionWasFound){
 	    	output.write("Solution distance: " + searchResult.solutionDistance + "\n");
 	    	output.write("Number of steps in solution: " + (searchResult.solutionPath.size()-1) + "\n");
-		for(int i=0; i<searchResult.solutionPath.size(); i++){
-		    output.write(searchResult.solutionPath.get(i).toString() + "\n");
+		while(!searchResult.solutionPath.empty()){
+		    output.write(searchResult.solutionPath.pop() + "\n");
 		}
 	    }
 	    output.flush();
@@ -111,7 +104,7 @@ public static void main(String [] args){
 
     }
     
-    public static SearchResult astarSearch(boolean useGraphSearch){
+    public static SearchResult astarSearch(final boolean useGraphSearch){
     	PriorityQueue<AStarSearchNode> fringe = new PriorityQueue<AStarSearchNode>();
     	SearchResult searchResult = new SearchResult();
     	fringe.add(new AStarSearchNode(startState, null, null, 0));
@@ -120,15 +113,15 @@ public static void main(String [] args){
     	while(!fringe.isEmpty()){
     		AStarSearchNode node = fringe.poll();
     		searchResult.numNodesDequeued++;
-    		if(useGraphSearch){node.getState().isClosed = true; node.getState().bestCostSoFar=node.getF();}
+    		if(useGraphSearch)
+    			node.getState().isClosed = true;
     		
       		if(node.getState().id == goalState.id){	// a goal node!
     			searchResult.solutionWasFound = true;
        			searchResult.solutionDistance = node.getG();
-       			
-    			searchResult.solutionPath = new ArrayList<Long>();
+    			searchResult.solutionPath = new Stack<Long>();
     			while(node != null){ // unravel the path
-    				searchResult.solutionPath.add(0, node.getState().id);
+    				searchResult.solutionPath.push(node.getState().id);
     				node = node.getParent();
     			}
     			break;
@@ -158,64 +151,49 @@ public static void main(String [] args){
       				}
       			}	
       		}
-    	}
+    	} // end while
     	return searchResult;
     }
     
     
-    public static SearchResult bfsSearch(boolean useGraphSearch){
+    public static SearchResult bfsSearch(final boolean useGraphSearch){
     	PriorityQueue<BFSSearchNode> fringe = new PriorityQueue<BFSSearchNode>();
     	SearchResult searchResult = new SearchResult();
-    	BFSSearchNode root = new BFSSearchNode(startState, null, null, 0);
-    	fringe.add(root);
+    	fringe.add(new BFSSearchNode(startState, null, null, 0)); // add root node
      	searchResult.numNodesEnqueued++;
     	
     	while(!fringe.isEmpty()){
     		BFSSearchNode node = fringe.poll();
     		searchResult.numNodesDequeued++;
-    		if(useGraphSearch){
+    		if(useGraphSearch)
     			node.getState().isClosed = true;
-    			node.getState().bestCostSoFar = node.getDepth();
-    		}
     		
       		if(node.getState().id == goalState.id){	// a goal node!
     			searchResult.solutionWasFound = true;
        			searchResult.solutionDistance = node.getTotalDistance();
-       			
-    			searchResult.solutionPath = new ArrayList<Long>();
-    			while(node != null){ // unravel the path
-    				searchResult.solutionPath.add(0, node.getState().id);
+       			searchResult.solutionPath = new Stack<Long>();
+    			while(node != null){ // push path onto stack in reverse
+    				searchResult.solutionPath.push(node.getState().id);
     				node = node.getParent();
     			}
     			break;
      		}
-      		
       		// add the neighbors to the fringe
       		ArrayList<BFSSearchNode> neighbors = node.getNeighbors();
       		if(null != neighbors){
       			if(!useGraphSearch){
       				fringe.addAll(neighbors);
-      				searchResult.numNodesEnqueued += neighbors.size();
+      				searchResult.numNodesEnqueued += (long) neighbors.size();
       			}else{
       				for(BFSSearchNode n : neighbors){
-      					if(!n.getState().isClosed){
-      						if(!fringe.contains(n)){
-      							n.getState().bestCostSoFar = n.getDepth();
-	      						fringe.add(n);
-	      						searchResult.numNodesEnqueued++;
-      						}else{
-      							if(n.getState().bestCostSoFar > n.getDepth()){
-      								fringe.remove(n);
-      								n.getState().bestCostSoFar = n.getDepth();
-      								fringe.add(n);
-      							}
-      						}
+      					if(!n.getState().isClosed && !fringe.contains(n)){
+      						fringe.add(n);
+      						searchResult.numNodesEnqueued++;
       					}
       				}
       			}	
       		}
-     	}
+     	} // end while
     	return searchResult;
     }
-
 }
